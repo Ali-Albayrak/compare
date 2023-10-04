@@ -8,7 +8,7 @@ from starlette.status import HTTP_204_NO_CONTENT
 from business.stadiums_schema import *
 from business.stadiums_model import StadiumModel
 
-from core.depends import CommonDependencies, get_db, Protect, zeauth_url
+from core.depends import CommonDependencies, get_async_db, get_sync_db, Protect, zeauth_url
 from core.logger import log
 from core.query import *
 
@@ -20,7 +20,7 @@ router = APIRouter()
 
 # list stadiums
 @router.get('/', tags=['stadiums'], status_code=200, response_model=ReadStadiums)
-async def list(request: Request, token: str = Depends(Protect), db: Session = Depends(get_db), commons: CommonDependencies = Depends(CommonDependencies)):
+async def list(request: Request, token: str = Depends(Protect), db: Session = Depends(get_async_db), commons: CommonDependencies = Depends(CommonDependencies)):
     token.auth(['admin', 'manager', 'user'])
     try:
         r = StadiumModel.objects(db).all(offset=commons.offset, limit=commons.size)
@@ -38,7 +38,7 @@ list.__doc__ = f" List stadiums".expandtabs()
 
 # get stadium
 @router.get('/stadium_id', tags=['stadiums'], response_model=ReadStadium)
-async def get(request: Request, stadium_id: str, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def get(request: Request, stadium_id: str, db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin', 'manager', 'user'])
     try:
         result = StadiumModel.objects(db).get(id=stadium_id)
@@ -60,7 +60,7 @@ get.__doc__ = f" Get a specific stadium by its id".expandtabs()
 
 # query stadium
 @router.post('/q', tags=['stadiums'], status_code=200)
-async def query(q: QuerySchema, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def query(q: QuerySchema, db: Session = Depends(get_sync_db), token: str = Depends(Protect)):
     token.auth(['admin', 'manager', 'user'])
     try:
         size = q.limit if q.limit else 20
@@ -91,7 +91,7 @@ async def query(q: QuerySchema, db: Session = Depends(get_db), token: str = Depe
 
 # create stadium
 @router.post('/', tags=['stadiums'], status_code=201, response_model=ReadStadium)
-async def create(request: Request, stadium: CreateStadium, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def create(request: Request, stadium: CreateStadium, db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin']) 
     try:
         new_data = stadium.dict()
@@ -119,7 +119,7 @@ create.__doc__ = f" Create a new stadium".expandtabs()
 
 # create multiple stadiums
 @router.post('/add-stadiums', tags=['stadiums'], status_code=201, response_model=List[ReadStadium])
-async def create_multiple_stadiums(request: Request, stadiums: List[CreateStadium], db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def create_multiple_stadiums(request: Request, stadiums: List[CreateStadium], db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin']) 
     new_items, errors_info = [], []
     try:
@@ -151,7 +151,7 @@ create.__doc__ = f" Create multiple new stadiums".expandtabs()
 
 # upsert multiple stadiums
 @router.post('/upsert-multiple-stadiums', tags=['stadiums'], status_code=201, response_model=List[ReadStadium])
-async def upsert_multiple_stadiums(request: Request, stadiums: List[UpsertStadium], db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def upsert_multiple_stadiums(request: Request, stadiums: List[UpsertStadium], db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     new_items, errors_info = [], []
     try:
@@ -191,7 +191,7 @@ upsert_multiple_stadiums.__doc__ = f" upsert multiple stadiums".expandtabs()
 
 # update stadium
 @router.put('/stadium_id', tags=['stadiums'], status_code=201)
-async def update(request: Request, stadium_id: Union[str, int], stadium: CreateStadium, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def update(request: Request, stadium_id: Union[str, int], stadium: CreateStadium, db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     try:
         old_data = StadiumModel.objects(db).get(id=stadium_id)
@@ -221,7 +221,7 @@ update.__doc__ = f" Update a stadium by its id and payload".expandtabs()
 
 # delete stadium
 @router.delete('/stadium_id', tags=['stadiums'], status_code=HTTP_204_NO_CONTENT, response_class=Response)
-async def delete(request: Request, stadium_id: Union[str, int], db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def delete(request: Request, stadium_id: Union[str, int], db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     try:
         kwargs = {
@@ -248,7 +248,7 @@ delete.__doc__ = f" Delete a stadium by its id".expandtabs()
 
 # delete multiple stadiums
 @router.delete('/delete-stadiums', tags=['stadiums'], status_code=HTTP_204_NO_CONTENT, response_class=Response)
-async def delete_multiple_stadiums(request: Request, stadiums_id: List[str] = QueryParam(), db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def delete_multiple_stadiums(request: Request, stadiums_id: List[str] = QueryParam(), db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     kwargs = {
         "model_data": {},

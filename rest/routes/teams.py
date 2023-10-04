@@ -8,7 +8,7 @@ from starlette.status import HTTP_204_NO_CONTENT
 from business.teams_schema import *
 from business.teams_model import TeamModel
 
-from core.depends import CommonDependencies, get_db, Protect, zeauth_url
+from core.depends import CommonDependencies, get_async_db, get_sync_db, Protect, zeauth_url
 from core.logger import log
 from core.query import *
 from actions import create_player_for_team
@@ -20,7 +20,7 @@ router = APIRouter()
 
 # list teams
 @router.get('/', tags=['teams'], status_code=200, response_model=ReadTeams)
-async def list(request: Request, token: str = Depends(Protect), db: Session = Depends(get_db), commons: CommonDependencies = Depends(CommonDependencies)):
+async def list(request: Request, token: str = Depends(Protect), db: Session = Depends(get_async_db), commons: CommonDependencies = Depends(CommonDependencies)):
     token.auth(['admin'])
     try:
         r = TeamModel.objects(db).all(offset=commons.offset, limit=commons.size)
@@ -38,7 +38,7 @@ list.__doc__ = f" List teams".expandtabs()
 
 # get team
 @router.get('/team_id', tags=['teams'], response_model=ReadTeam)
-async def get(request: Request, team_id: str, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def get(request: Request, team_id: str, db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin', 'user'])
     try:
         result = TeamModel.objects(db).get(id=team_id)
@@ -60,7 +60,7 @@ get.__doc__ = f" Get a specific team by its id".expandtabs()
 
 # query team
 @router.post('/q', tags=['teams'], status_code=200)
-async def query(q: QuerySchema, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def query(q: QuerySchema, db: Session = Depends(get_sync_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     try:
         size = q.limit if q.limit else 20
@@ -91,7 +91,7 @@ async def query(q: QuerySchema, db: Session = Depends(get_db), token: str = Depe
 
 # create team
 @router.post('/', tags=['teams'], status_code=201, response_model=ReadTeam)
-async def create(request: Request, team: CreateTeam, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def create(request: Request, team: CreateTeam, db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin']) 
     try:
         new_data = team.dict()
@@ -119,7 +119,7 @@ create.__doc__ = f" Create a new team".expandtabs()
 
 # create multiple teams
 @router.post('/add-teams', tags=['teams'], status_code=201, response_model=List[ReadTeam])
-async def create_multiple_teams(request: Request, teams: List[CreateTeam], db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def create_multiple_teams(request: Request, teams: List[CreateTeam], db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin']) 
     new_items, errors_info = [], []
     try:
@@ -151,7 +151,7 @@ create.__doc__ = f" Create multiple new teams".expandtabs()
 
 # upsert multiple teams
 @router.post('/upsert-multiple-teams', tags=['teams'], status_code=201, response_model=List[ReadTeam])
-async def upsert_multiple_teams(request: Request, teams: List[UpsertTeam], db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def upsert_multiple_teams(request: Request, teams: List[UpsertTeam], db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     new_items, errors_info = [], []
     try:
@@ -191,7 +191,7 @@ upsert_multiple_teams.__doc__ = f" upsert multiple teams".expandtabs()
 
 # update team
 @router.put('/team_id', tags=['teams'], status_code=201)
-async def update(request: Request, team_id: Union[str, int], team: CreateTeam, db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def update(request: Request, team_id: Union[str, int], team: CreateTeam, db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     try:
         old_data = TeamModel.objects(db).get(id=team_id)
@@ -221,7 +221,7 @@ update.__doc__ = f" Update a team by its id and payload".expandtabs()
 
 # delete team
 @router.delete('/team_id', tags=['teams'], status_code=HTTP_204_NO_CONTENT, response_class=Response)
-async def delete(request: Request, team_id: Union[str, int], db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def delete(request: Request, team_id: Union[str, int], db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     try:
         kwargs = {
@@ -248,7 +248,7 @@ delete.__doc__ = f" Delete a team by its id".expandtabs()
 
 # delete multiple teams
 @router.delete('/delete-teams', tags=['teams'], status_code=HTTP_204_NO_CONTENT, response_class=Response)
-async def delete_multiple_teams(request: Request, teams_id: List[str] = QueryParam(), db: Session = Depends(get_db), token: str = Depends(Protect)):
+async def delete_multiple_teams(request: Request, teams_id: List[str] = QueryParam(), db: Session = Depends(get_async_db), token: str = Depends(Protect)):
     token.auth(['admin'])
     kwargs = {
         "model_data": {},
